@@ -1,47 +1,30 @@
+#include <ShiftRegister74HC595.h>
+
+#define DS_PIN 9
+#define SH_CP_PIN 8
+#define ST_CP_PIN 7
+#define NB_OF_SHIFT_REGISTERS 5
+
+// create a global shift register object
+// parameters: (number of shift registers, data pin, clock pin, latch pin)
+ShiftRegister74HC595 sr (NB_OF_SHIFT_REGISTERS, DS_PIN, SH_CP_PIN, ST_CP_PIN); 
+
 int strobePin  = 10;    // Strobe Pin on the MSGEQ7
 int resetPin   = 9;    // Reset Pin on the MSGEQ7
 int outPin     = A0;   // Output Pin on the MSGEQ7
 int level[7];          // An array to hold the values from the 7 frequency bands
 
-const int tubeCount = 10;
+const int tubeCount = 8;
 const int segCount = 5;
 
-typedef struct seg_t
-{
-  int seg_index;
-  int port_index;
-  char port;
-};
 
-typedef struct tube_t
-{
-  int tube_index;
-  int port_index;
-  char port;
-};
-
-seg_t segmentPins[segCount] = {
-//seg_index,port_index,port
-  { 1,      PORTD2,   'D'},
-  { 2,      PORTD1,   'D'},
-  { 3,      PORTD4,   'D'},
-  { 4,      PORTD0,   'D'},
-  { 5,      PORTD3,   'D'}
-};
-
-tube_t tubePins[tubeCount] = {
-//tube_index,port_index,port
-  { 1,       PORTC1,    'C'},
-  { 2,       PORTC2,    'C'},
-  { 3,       PORTC3,    'C'},
-  { 4,       PORTC4,    'C'},
-  { 5,       PORTC5,    'C'},
-  { 6,       PORTD5,    'D'},
-  { 7,       PORTD6,    'D'},
-  { 8,       PORTD7,    'D'},
-  { 9,       PORTB0,    'B'},
-  { 10,      PORTB3,    'B'}
-};
+int table[segCount][tubeCount] = {
+  {32,33,34,35,36,37,38,39},//top row
+  {24,25,26,27,28,29,30,31},
+  {16,17,18,19,20,21,22,23},
+  {8, 9, 10,11,12,13,14,15},
+  {0, 1, 2, 3, 4, 5, 6, 7 }//bottom row
+  };
 
 
 
@@ -64,51 +47,17 @@ void setup()
   digitalWrite (strobePin, HIGH);
   delay        (1);
   
-  DDRB = DDRB | B11111111;
-  DDRC = DDRC | B11111110;
-  DDRD = DDRD | B11111111;
+  //DDRB = DDRB | B11111111;
+  //DDRC = DDRC | B11111110;
+  //DDRD = DDRD | B11111111;
 }
 
 
-/* from top to bottom
- * 1 - PORTD2
- * 2 - PORTD1
- * 1 - PORTD4
- * 2 - PORTD0
- * 1 - PORTD3
- */
-
-/* from left to right
- *   1    -    2   -   3    -    4   -    5   -   6    -    7   -    8   -    9   -  10
- * PORTC1 - PORTC2 - PORTC3 - PORTC4 - PORTC5 - PORTD5 - PORTD6 - PORTD7 - PORTB0 - PORTB3
- */
-#define ON true
-#define OFF false
-void portWrite(char select_option, int index, bool state);
-int tube_index = 0;
-
-void close_all_tubes()
-{
-    for(int tube_index = 0; tube_index<tubeCount; tube_index++)
-    {
-      portWrite('T', tube_index, OFF);
-    }
-}
-
-
-void close_all_seg()
-{
-    for(int seg_index = 0; seg_index<segCount; seg_index++)
-    {
-      portWrite('S', seg_index, OFF);
-    }
-}
-// Frequency for main loop function
-#define READ_DELAY  50  // milliseconds
 
 void loop() 
 {
   int tube_index = 6;
+  
   // Cycle through each frequency band by pulsing the strobe.
   for (int i = 0; i < 7; i++) 
   {
@@ -119,105 +68,54 @@ void loop()
     digitalWrite       (strobePin, HIGH);
     delayMicroseconds  (100);                    // Delay necessary due to timing diagram  
   }
- 
-  //for (int tube_index = 0; tube_index < 7; tube_index++) 
-  {
-    //Serial.print       (level[tube_index]);
-    //Serial.print       ("   ");
 
-      //close_all_tubes();
-      if(level[tube_index]<=50)
-      {
-        portWrite('T', tube_index, ON);
-        portWrite('S', 0, ON);
-        delay(100);
-        portWrite('S', 0, OFF);
-        portWrite('T', tube_index, OFF);
-        delay(10);
-      }
-      else if((level[tube_index]>50) && (level[tube_index]<=100))
-      {
-        portWrite('T', tube_index, ON);
-        portWrite('S', 1, ON);
-        delay(100);
-        portWrite('S', 1, OFF);
-        portWrite('T', tube_index, OFF);
-        delay(10);
-      }
-      else if((level[tube_index]>100) && (level[tube_index]<=150))
-      {
-        portWrite('T', tube_index, ON);
-        portWrite('S', 2, ON);
-        delay(100);
-        portWrite('S', 2, OFF);
-        portWrite('T', tube_index, OFF);
-        delay(10);
-      }
-      else if((level[tube_index]>150) && (level[tube_index]<=200))
-      {
-        portWrite('T', tube_index, ON);
-        portWrite('S', 3, ON);
-        delay(100);
-        portWrite('S', 3, OFF);
-        portWrite('T', tube_index, OFF);
-        delay(10);
-      }
-      else if(level[tube_index]>200)
-      {
-        portWrite('T', tube_index, ON);
-        portWrite('S', 4, ON);
-        delay(100);
-        portWrite('S', 4, OFF);
-        portWrite('T', tube_index, OFF);
-        delay(10);
-      }
-    }
-}
-
-void portWrite(char select_option, int index, bool state)
-{
-  int port_internal;
-  char local_string;
-
-  if(select_option == 'S')
-  {
-    port_internal = segmentPins[index].port_index;
-    local_string = segmentPins[index].port;  
-  }
-  else
-  {
-    port_internal = tubePins[index].port_index;
-    local_string = tubePins[index].port;
-  }
   
-  if(state == ON)
+  sr.setAllLow(); // set all pins LOW
+  delay(10);
+  
+  if(level[tube_index]<=50)
   {
-    if(local_string == 'B') 
-    {
-      PORTB |=(1<< port_internal);
-    }
-    else if(local_string == 'C')
-    {
-      PORTC |=(1<< port_internal);
-    }
-    else if(local_string == 'D')
-    {
-      PORTD |=(1<< port_internal);
-    }
+    //sr.set(i, HIGH); // set single pin HIGH
   }
-  else
+  else if((level[tube_index]>50) && (level[tube_index]<=100))
   {
-    if(local_string == 'B') 
-    {
-      PORTB &=~ (1<<port_internal);
-    }
-    else if(local_string == 'C')
-    {
-      PORTC &=~ (1<<port_internal);
-    }
-    else if(local_string == 'D')
-    {
-      PORTD &=~ (1<<port_internal);
-    }
+
   }
+  else if((level[tube_index]>100) && (level[tube_index]<=150))
+  {
+
+  }
+  else if((level[tube_index]>150) && (level[tube_index]<=200))
+  {
+
+  }
+  else if(level[tube_index]>200)
+  {
+   
+  }
+
+  // setting single pins
+  //for (int i = 0; i < 8; i++) {
+    
+  //   sr.set(i, HIGH); // set single pin HIGH
+  //   delay(250); 
+  //}
+  // set all pins at once
+  uint8_t pinValues[] = { B00111100,
+                          B01000010,
+                          B10011001,
+                          B01000010,
+                          B00111100};
+  sr.setAll(pinValues); 
+  delay(100);
+
+  sr.setAllLow(); // set all pins LOW
+  delay(10);
+
+  // set pins without immediate update
+  // sr.setNoUpdate(0, HIGH);
+  // sr.setNoUpdate(1, LOW);
+  // at this point of time, pin 0 and 1 did not change yet
+  sr.updateRegisters(); // update the pins to the set values
 }
+
