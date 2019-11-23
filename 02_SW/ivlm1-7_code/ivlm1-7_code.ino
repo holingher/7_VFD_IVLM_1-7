@@ -13,16 +13,7 @@ int strobePin  = 10;    //PB2 Strobe Pin on the MSGEQ7
 int resetPin   = 9;    //PB3 Reset Pin on the MSGEQ7
 int outPin     = A0;   // Output Pin on the MSGEQ7
 
-const int tubeCount = 8;
 const int segCount = 5;
-
-int table[segCount][tubeCount] = {
-  {0, 1, 2, 3, 4, 5, 6, 7 },//bottom row
-  {8, 9, 10,11,12,13,14,15},
-  {16,17,18,19,20,21,22,23},
-  {24,25,26,27,28,29,30,31},
-  {32,33,34,35,36,37,38,39}//top row
-  };
 
 void setup() 
 {
@@ -43,50 +34,102 @@ void setup()
   digitalWrite (strobePin, HIGH);
   delay        (1);
  
-  //DDRB = DDRB | B11111111;
-  //DDRC = DDRC | B11111110;
-  DDRD = DDRD | B11111111;
+  DDRD = DDRD | B00011111;
 }
+
 byte next_cycle_seg6 = 0;
+char display_type = 'a';
 void loop() 
 {
-  int temp_level_7 = 0;
   byte lvl[7]={0,0,0,0,0,0,0};
   byte row_value[4];
-  byte level[7];          // An array to hold the values from the 7 frequency bands
+  int level[7];          // An array to hold the values from the 7 frequency bands
   byte level_to_seg[7];          // An array to hold the values from the 7 frequency bands
-  int currentSegmentLevel = 0;
+
+bool value_met_0;
+bool value_met_1;
+bool value_met_2;
+bool value_met_3;
+bool value_met_4;
+bool value_met_5;
+bool value_met_6;
+bool value_met_7;
+
   // Cycle through each frequency band by pulsing the strobe.
   for (int i = 0; i < 7; i++) 
   {
-    //digitalWrite       (strobePin, LOW);
-    PORTB = PORTB & 0b11111011;
+    digitalWrite       (strobePin, LOW);
     delayMicroseconds  (100);                    // Delay necessary due to timing diagram
-    //map(value, fromLow, fromHigh, toLow, toHigh)
     level[i] = analogRead(outPin);
-    //digitalWrite       (strobePin, HIGH);
-    PORTB = PORTB | 0b00000100;
+    digitalWrite       (strobePin, HIGH);
     delayMicroseconds  (100);                    // Delay necessary due to timing diagram  
   }
 
-  for(int index_tube = 0; index_tube<8; index_tube++)
-  {
-    level_to_seg[index_tube] = level[index_tube]/50;
-  }
-  
+  level_to_seg[0] = level[0]/200;
+  level_to_seg[1] = level[1]/200;
+  level_to_seg[2] = level[2]/200;
+  level_to_seg[3] = level[3]/200;
+  level_to_seg[4] = level[4]/200;
+  level_to_seg[5] = level[5]/200;
+  level_to_seg[6] = level[6]/200;
   level_to_seg[7]=(level_to_seg[6] + next_cycle_seg6)/2;
   next_cycle_seg6 = level_to_seg[6];
-  for(int index_row = 0; index_row<5; index_row++)
-  {
-    if(level_to_seg[0] == index_row){lvl[0] = 1;} else {lvl[0] = 0;}
-    if(level_to_seg[1] == index_row){lvl[1] = 1;} else {lvl[1] = 0;}
-    if(level_to_seg[2] == index_row){lvl[2] = 1;} else {lvl[2] = 0;}
-    if(level_to_seg[3] == index_row){lvl[3] = 1;} else {lvl[3] = 0;}
-    if(level_to_seg[4] == index_row){lvl[4] = 1;} else {lvl[4] = 0;}
-    if(level_to_seg[5] == index_row){lvl[5] = 1;} else {lvl[5] = 0;}
-    if(level_to_seg[6] == index_row){lvl[6] = 1;} else {lvl[6] = 0;}
-    if(level_to_seg[7] == index_row){lvl[7] = 1;} else {lvl[7] = 0;}
 
+value_met_0 = false;
+value_met_1 = false;
+value_met_2 = false;
+value_met_3 = false;
+value_met_4 = false;
+value_met_5 = false;
+value_met_6 = false;
+value_met_7 = false;
+  for(int index_row = 0; index_row<segCount; index_row++)
+  {
+    if(display_type == 'a')
+    {
+      if(level_to_seg[0] == index_row){lvl[0] = 1;} else {lvl[0] = 0;}
+      if(level_to_seg[1] == index_row){lvl[1] = 1;} else {lvl[1] = 0;}
+      if(level_to_seg[2] == index_row){lvl[2] = 1;} else {lvl[2] = 0;}
+      if(level_to_seg[3] == index_row){lvl[3] = 1;} else {lvl[3] = 0;}
+      if(level_to_seg[4] == index_row){lvl[4] = 1;} else {lvl[4] = 0;}
+      if(level_to_seg[5] == index_row){lvl[5] = 1;} else {lvl[5] = 0;}
+      if(level_to_seg[6] == index_row){lvl[6] = 1;} else {lvl[6] = 0;}
+      if(level_to_seg[7] == index_row){lvl[7] = 1;} else {lvl[7] = 0;}
+    }
+    else if(display_type == 'b')
+    {
+      if((level_to_seg[0] == index_row) && (!value_met_0)){lvl[0] = 1;value_met_0 = true;} 
+      else if((level_to_seg[0] != index_row) && (!value_met_0)){lvl[0] = 1;}
+      else if((level_to_seg[0] != index_row) && (value_met_0)){lvl[0] = 0;}
+      
+      if((level_to_seg[1] == index_row) && (!value_met_1)){lvl[1] = 1;value_met_1 = true;} 
+      else if((level_to_seg[1] != index_row) && (!value_met_1)){lvl[1] = 1;}
+      else if((level_to_seg[1] != index_row) && (value_met_1)){lvl[1] = 0;}
+      
+      if((level_to_seg[2] == index_row) && (!value_met_2)){lvl[2] = 1;value_met_2 = true;} 
+      else if((level_to_seg[2] != index_row) && (!value_met_2)){lvl[2] = 1;}
+      else if((level_to_seg[2] != index_row) && (value_met_2)){lvl[2] = 0;}
+      
+      if((level_to_seg[3] == index_row) && (!value_met_3)){lvl[3] = 1;value_met_3 = true;} 
+      else if((level_to_seg[3] != index_row) && (!value_met_3)){lvl[3] = 1;}
+      else if((level_to_seg[3] != index_row) && (value_met_3)){lvl[3] = 0;}
+      
+      if((level_to_seg[4] == index_row) && (!value_met_4)){lvl[4] = 1;value_met_4 = true;} 
+      else if((level_to_seg[4] != index_row) && (!value_met_4)){lvl[4] = 1;}
+      else if((level_to_seg[4] != index_row) && (value_met_4)){lvl[4] = 0;}
+      
+      if((level_to_seg[5] == index_row) && (!value_met_5)){lvl[5] = 1;value_met_5 = true;} 
+      else if((level_to_seg[5] != index_row) && (!value_met_5)){lvl[5] = 1;}
+      else if((level_to_seg[5] != index_row) && (value_met_5)){lvl[5] = 0;}
+      
+      if((level_to_seg[6] == index_row) && (!value_met_6)){lvl[6] = 1;value_met_6 = true;} 
+      else if((level_to_seg[6] != index_row) && (!value_met_6)){lvl[6] = 1;}
+      else if((level_to_seg[6] != index_row) && (value_met_6)){lvl[6] = 0;}
+      
+      if((level_to_seg[7] == index_row) && (!value_met_7)){lvl[7] = 1;value_met_7 = true;} 
+      else if((level_to_seg[7] != index_row) && (!value_met_7)){lvl[7] = 1;}
+      else if((level_to_seg[7] != index_row) && (value_met_7)){lvl[7] = 0;}
+    }
     row_value[index_row]=(byte)(lvl[0] |
             (lvl[1] << 1) | 
             (lvl[2] << 2) | 
@@ -104,25 +147,9 @@ void loop()
                           row_value[3],
                           row_value[4],}; 
   sr.setAll(pinValues); 
-  delay(70);
+  delay(100);
+
+    // set pins without immediate update
+  sr.setNoUpdate(DS_PIN, HIGH);
+  sr.setNoUpdate(SH_CP_PIN, LOW);
 }
-
-/*
-byte foo(int index_row)
-{
-  byte lvl[7]={0,0,0,0,0,0,0};
-  for(int index = 0;index<8;index++)
-  {
-    if(local_level_to_seg[index] == index_row){lvl[index] = 1;}
-    else{lvl[index] = 0;}
-  }
-
-  return (byte)(lvl[0] |
-            (lvl[1] << 1) | 
-            (lvl[2] << 2) | 
-            (lvl[3] << 3) | 
-            (lvl[4] << 4) |
-            (lvl[5] << 5) | 
-            (lvl[6] << 6) | 
-            (lvl[7] << 7));
-}*/
